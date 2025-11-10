@@ -11,6 +11,8 @@ def adicionar_carteira(dados):
         dados["nome"],
         dados["sobrenome"],
         dados["cpf"],
+        dados["nacionalidade"],
+        dados["categoria"],
         dados["data_emissao"],
         dados["validade"]
     )
@@ -24,6 +26,9 @@ def atualizar_carteira(carteira_id, dados):
         carteira_id,
         novo_nome=dados.get("nome"),
         novo_sobrenome=dados.get("sobrenome"),
+        novo_cpf=dados.get("cpf"),
+        nova_nacionalidade=dados.get("nacionalidade"),
+        nova_categoria=dados.get("categoria"),
         nova_data_emissao=dados.get("data_emissao"),
         nova_validade=dados.get("validade")
     )
