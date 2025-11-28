@@ -1,17 +1,17 @@
-# Classe Carteira.
-class Carteira:
-    _id_counter = 1 # contador estático para gerar IDs
+from dataclasses import dataclass
+from database import get_connection
 
-    def __init__(self, nome, sobrenome, cpf, nacionalidade, categoria, data_emissao, validade):
-        self.id = Carteira._id_counter
-        self.nome = nome
-        self.sobrenome = sobrenome
-        self.cpf = cpf
-        self.nacionalidade = nacionalidade
-        self.categoria = categoria
-        self.data_emissao = data_emissao
-        self.validade = validade
-        Carteira._id_counter += 1
+# Classe Carteira.
+@dataclass
+class Carteira:
+    id: int
+    nome: str
+    sobrenome: str
+    cpf: str
+    nacionalidade: str
+    categoria: str
+    data_emissao: str = None # formato 'YYYY-MM-DD' ou None
+    validade: str = None # formato 'YYYY-MM-DD' ou None
 
     def to_dict(self):
         """Transforma o objeto em dicionário (para JSON)."""
@@ -23,64 +23,81 @@ class Carteira:
             "nacionalidade": self.nacionalidade,
             "categoria": self.categoria,
             "data_emissao": self.data_emissao,
-            "validade": self.validade
+            "validade": self.validade,
             }
+    
+def carteira_from_row(row):
+    return Carteira(
+        id=row["id"],
+        nome=row["nome"],
+        sobrenome=row["sobrenome"],
+        cpf=row["cpf"],
+        nacionalidade=row["nacionalidade"],
+        categoria=row["categoria"],
+        data_emissao=row["data_emissao"],
+        validade=row["validade"],
+    )
 
-#"Banco de dados" em memória.
-bd_carteiras = [
-    Carteira("Maria", "Oliveira", "12345678901", "Brasileira", "B", "2024-01-15", "2030-01-15"),
-    Carteira("Carlos", "Santos", "98765432100", "Brasileiro", "B", "2023-11-02", "2029-11-02")
-]
+#Funções de acesso ao banco de dados.
 
-#Funções de acesso aos dados.
 #Listar todas as carteiras (READ).
-def listar():
-    return [carteira.to_dict() for carteira in bd_carteiras]
+def listar_carteiras():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM carteiras_habilitacao")
+    rows = cur.fetchall()
+    conn.close()
+    return [carteira_from_row(r) for r in rows]
+
+#Buscar Carteira por ID (READ).
+def obter_carteira_por_id(id_carteira):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM carteiras_habilitacao WHERE id = ?", (id_carteira,))
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        return carteira_from_row(row)
+    return None
 
 #Adicionar carteira (CREATE).
-def adicionar(carteira: Carteira):
-    bd_carteiras.append(carteira)
-    return carteira.to_dict()
-
-#Buscar ID da Carteira.
-def buscar_id(carteira_id):
-    for carteira in bd_carteiras:
-        if carteira.id == carteira_id:
-            return carteira
-    return None
+def criar_carteira(nome, sobrenome, cpf, nacionalidade, categoria, data_emissao = None, validade=None):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO carteiras_habilitacao (nome, sobrenome, cpf, nacionalidade, categoria, data_emissao, validade)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (nome, sobrenome, cpf, nacionalidade, categoria, data_emissao, validade),
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
+    return obter_carteira_por_id(new_id)
 
 #Atualizar as informações da carteira (UPDATE).
-def atualizar(carteira_id, 
-              novo_nome=None, 
-              novo_sobrenome=None, 
-              novo_cpf=None,
-              nova_nacionalidade=None,
-              nova_categoria=None,
-              nova_data_emissao=None, 
-              nova_validade=None):
-    carteira = buscar_id(carteira_id)
-    if carteira:
-        if novo_nome:
-            carteira.nome = novo_nome
-        if novo_sobrenome:
-            carteira.sobrenome = novo_sobrenome
-        if novo_cpf:
-            carteira.cpf = novo_cpf
-        if nova_nacionalidade:
-            carteira.nacionalidade = nova_nacionalidade
-        if nova_categoria:
-            carteira.categoria = nova_categoria
-        if nova_data_emissao:
-            carteira.data_emissao = nova_data_emissao
-        if nova_validade:
-            carteira.validade = nova_validade
-        return carteira.to_dict()
-    return None
+def atualizar_carteira(carteira):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE carteiras_habilitacao
+           SET nome = ?, sobrenome = ?, cpf = ?, nacionalidade = ?, categoria = ?, data_emissao = ?, validade = ?
+         WHERE id = ?
+        """,
+        (carteira.nome, carteira.sobrenome, carteira.cpf, carteira.nacionalidade, carteira.categoria, carteira.data_emissao, carteira.validade, carteira.id),
+    )
+    conn.commit()
+    conn.close()
+    return carteira
 
 #Deletar carteira (DELETE).
-def deletar(carteira_id):
-    carteira = buscar_id(carteira_id)
-    if carteira:
-        bd_carteiras.remove(carteira)
-        return carteira.to_dict()
-    return None
+def deletar_carteira(id_carteira):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM carteiras_habilitacao WHERE id = ?", (id_carteira,))
+    conn.commit()
+    deletou = cur.rowcount > 0
+    conn.close()
+    return deletou
