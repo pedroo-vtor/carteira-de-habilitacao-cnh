@@ -46,6 +46,7 @@ API simples de **carteira de habilitação**, desenvolvida em *Flask*, com dados
   - **Aluno-Matricula:** Pedro Vitor Lins - 03346257
   - **Curso:** Ciências da Computação (4° Período)
   - **Disciplina:** Framework Back-End
+  - **Código da turma:** EPI0790104NMA
   - **Professor:** Viviano de Sousa
 
 
